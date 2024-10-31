@@ -1,25 +1,68 @@
-<html>
-  <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v7.0.0/dist/aframe-extras.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
-  </head>
-  <body>
-    <a-scene mindar-image="imageTargetSrc: https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.5/examples/image-tracking/assets/band-example/band.mind;" color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
-      <a-assets>
-        <a-asset-item id="bearModel" src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.5/examples/image-tracking/assets/band-example/bear/scene.gltf"></a-asset-item>
-        <a-asset-item id="raccoonModel" src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.5/examples/image-tracking/assets/band-example/raccoon/scene.gltf"></a-asset-item>
-      </a-assets>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebXR Demo</title>
+    <style>body { margin: 0; overflow: hidden; }</style>
+</head>
+<body>
+    <!-- Nút để bắt đầu AR session -->
+    <button id="start-ar" style="position: absolute; z-index: 1;">Start AR</button>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        let scene, camera, renderer, xrSession;
+        
+        async function initXR() {
+            if (navigator.xr) {
+                try {
+                    xrSession = await navigator.xr.requestSession('immersive-ar', {
+                        requiredFeatures: ['hit-test', 'local-floor']
+                    });
+                    onXRSessionStart(xrSession);
+                } catch (e) {
+                    console.log("XR không được hỗ trợ", e);
+                }
+            } else {
+                console.log("Thiết bị không hỗ trợ WebXR");
+            }
+        }
 
-      <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+        function onXRSessionStart(session) {
+            renderer = new THREE.WebGLRenderer({ alpha: true });
+            renderer.xr.enabled = true;
+            document.body.appendChild(renderer.domElement);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.xr.setReferenceSpaceType('local-floor');
 
-      <a-entity mindar-image-target="targetIndex: 0">
-        <a-gltf-model rotation="0 0 0 " position="0 -0.25 0" scale="0.05 0.05 0.05" src="#raccoonModel" animation-mixer>
-      </a-entity>
-      <a-entity mindar-image-target="targetIndex: 1">
-        <a-gltf-model rotation="0 0 0 " position="0 -0.25 0" scale="0.05 0.05 0.05" src="#bearModel" animation-mixer>
-      </a-entity>
-    </a-scene>
-  </body>
+            session.updateRenderState({ baseLayer: new XRWebGLLayer(session, renderer.getContext()) });
+            session.requestReferenceSpace('local-floor').then((referenceSpace) => {
+                session.requestAnimationFrame(onXRFrame);
+                create3DContent(referenceSpace);
+            });
+        }
+
+        function create3DContent(referenceSpace) {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
+            const geometry = new THREE.BoxGeometry(0.1, 0.1, 0.1);
+            const material = new THREE.MeshBasicMaterial({ color: 0x0077ff });
+            const cube = new THREE.Mesh(geometry, material);
+            cube.position.set(0, 0, -0.5);
+            scene.add(cube);
+        }
+
+        function onXRFrame(time, frame) {
+            const session = frame.session;
+            session.requestAnimationFrame(onXRFrame);
+            renderer.render(scene, camera);
+        }
+
+        document.getElementById('start-ar').addEventListener('click', () => {
+            initXR();
+            document.getElementById('start-ar').style.display = 'none';
+        });
+    </script>
+</body>
 </html>
