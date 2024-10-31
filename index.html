@@ -4,17 +4,33 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WebXR Demo</title>
-    <style>body { margin: 0; overflow: hidden; }</style>
+    <style>
+        body { margin: 0; overflow: hidden; }
+        #error-message { 
+            position: absolute; 
+            top: 10px; 
+            left: 10px; 
+            color: red; 
+            background-color: white; 
+            padding: 10px; 
+            display: none;
+            border: 1px solid red;
+            z-index: 10;
+        }
+    </style>
 </head>
 <body>
     <!-- Nút để bắt đầu AR session -->
     <button id="start-ar" style="position: absolute; z-index: 1;">Start AR</button>
+    <!-- Thông báo lỗi -->
+    <div id="error-message">Lỗi sẽ hiển thị ở đây</div>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
         let scene, camera, renderer, xrSession;
-        
+
         async function initXR() {
+            const errorMessageDiv = document.getElementById('error-message');
             if (navigator.xr) {
                 try {
                     xrSession = await navigator.xr.requestSession('immersive-ar', {
@@ -23,9 +39,14 @@
                     onXRSessionStart(xrSession);
                 } catch (e) {
                     console.log("XR không được hỗ trợ", e);
+                    // Hiển thị lỗi lên màn hình
+                    errorMessageDiv.innerText = `Lỗi: ${e.message}`;
+                    errorMessageDiv.style.display = 'block';
                 }
             } else {
                 console.log("Thiết bị không hỗ trợ WebXR");
+                errorMessageDiv.innerText = "Thiết bị không hỗ trợ WebXR";
+                errorMessageDiv.style.display = 'block';
             }
         }
 
